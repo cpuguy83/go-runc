@@ -1,4 +1,4 @@
-module github.com/containerd/go-runc
+module github.com/cpuguy83/go-runc
 
 go 1.20
 
