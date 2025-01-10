@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -53,7 +52,7 @@ func newPipeIO(uid, gid int, opts ...IOOpt) (i IO, err error) {
 			// TODO: revert with proper darwin solution, skipping for now
 			// as darwin chown is returning EINVAL on anonymous pipe
 			if runtime.GOOS == "darwin" {
-				logrus.WithError(err).Debug("failed to chown stdin, ignored")
+				// logrus.WithError(err).Debug("failed to chown stdin, ignored")
 			} else {
 				return nil, fmt.Errorf("failed to chown stdin: %w", err)
 			}
@@ -68,7 +67,7 @@ func newPipeIO(uid, gid int, opts ...IOOpt) (i IO, err error) {
 			// TODO: revert with proper darwin solution, skipping for now
 			// as darwin chown is returning EINVAL on anonymous pipe
 			if runtime.GOOS == "darwin" {
-				logrus.WithError(err).Debug("failed to chown stdout, ignored")
+				// logrus.WithError(err).Debug("failed to chown stdout, ignored")
 			} else {
 				return nil, fmt.Errorf("failed to chown stdout: %w", err)
 			}
@@ -83,7 +82,7 @@ func newPipeIO(uid, gid int, opts ...IOOpt) (i IO, err error) {
 			// TODO: revert with proper darwin solution, skipping for now
 			// as darwin chown is returning EINVAL on anonymous pipe
 			if runtime.GOOS == "darwin" {
-				logrus.WithError(err).Debug("failed to chown stderr, ignored")
+				// logrus.WithError(err).Debug("failed to chown stderr, ignored")
 			} else {
 				return nil, fmt.Errorf("failed to chown stderr: %w", err)
 			}
