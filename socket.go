@@ -122,10 +122,6 @@ func recvFd(socket *net.UnixConn) (*os.File, error) {
 		return nil, err
 	}
 
-	if n >= MaxNameLen || oobn != oobSpace {
-		return nil, fmt.Errorf("recvfd: incorrect number of bytes read (n=%d oobn=%d)", n, oobn)
-	}
-
 	// Truncate.
 	name = name[:n]
 	oob = oob[:oobn]
@@ -134,19 +130,42 @@ func recvFd(socket *net.UnixConn) (*os.File, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// The kernel installs the descriptors before the read above returns, so
+	// they belong to this process from here on and must be closed on every
+	// error path, otherwise a peer sending a malformed message leaks them.
+	fds := unixRights(scms)
+	defer func() {
+		for _, fd := range fds {
+			unix.Close(fd)
+		}
+	}()
+
+	if n >= MaxNameLen || oobn != oobSpace {
+		return nil, fmt.Errorf("recvfd: incorrect number of bytes read (n=%d oobn=%d)", n, oobn)
+	}
 	if len(scms) != 1 {
 		return nil, fmt.Errorf("recvfd: number of SCMs is not 1: %d", len(scms))
-	}
-	scm := scms[0]
-
-	fds, err := unix.ParseUnixRights(&scm)
-	if err != nil {
-		return nil, err
 	}
 	if len(fds) != 1 {
 		return nil, fmt.Errorf("recvfd: number of fds is not 1: %d", len(fds))
 	}
-	fd := uintptr(fds[0])
 
-	return os.NewFile(fd, string(name)), nil
+	f := os.NewFile(uintptr(fds[0]), string(name))
+	fds = nil // ownership passes to the returned file
+	return f, nil
+}
+
+// unixRights returns every descriptor attached to the received control
+// messages. Messages which carry no descriptors are skipped.
+func unixRights(scms []unix.SocketControlMessage) []int {
+	var fds []int
+	for i := range scms {
+		received, err := unix.ParseUnixRights(&scms[i])
+		if err != nil {
+			continue
+		}
+		fds = append(fds, received...)
+	}
+	return fds
 }
